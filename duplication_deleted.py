@@ -37,35 +37,6 @@ def search_naver(keyword, browser):
 
     return result_naver_raw
 
-#11번가 검색 함수
-def search_11st(keyword, browser):
-    browser.get(f'https://search.11st.co.kr/pc/total-search?kwd={keyword}&tabId=TOTAL_SEARCH')
-    time.sleep(2)
-    result_11st_raw = []
-
-    commonPrd_11st = browser.find_element(By.XPATH, "//*[@id='section_commonPrd']/div[2]/ul")
-    content_11st =commonPrd_11st.find_elements(By.CLASS_NAME, "c-card-item__name")
-    
-    all_words = []
-    for element_11st in content_11st:
-        product_name_11 = element_11st.text
-        if "상품명" in product_name_11:
-            product_name_11 = product_name_11.split("상품명")[1].strip()
-        first_space_index = product_name_11.find(" ")
-        if first_space_index != -1:
-            product_name_11 = product_name_11[first_space_index+1:].strip()
-        product_name_11 = re.sub(r'[^가-힣\s]', '', product_name_11)
-        words = product_name_11.split()
-        all_words.extend(words)
-
-    word_counter = Counter(all_words)
-    sorted_word_counts = sorted(word_counter.items(), key=lambda x: x[1], reverse=True)
-
-    # 가공된 검색 결과를 리스트로 반환
-    result_11st_raw = [word_count[0] for word_count in sorted_word_counts]
-
-    return result_11st_raw 
-
 # 지마켓 검색 함수
 def search_gmarket(keyword):
     url_gmarket = f"https://browse.gmarket.co.kr/search?keyword={keyword}"
@@ -124,13 +95,9 @@ def search(event=None):
         # 네이버 쇼핑 검색
         result_naver_raw = search_naver(keyword, browser)
         
-        # 11번가 검색
-        result_11st_raw = search_11st(keyword, browser)
-
         # 지마켓 검색
         results_gmarket_raw = search_gmarket(keyword)
 
-        #네이버 쇼핑 검색 결과 sorting
         result_naver_non_sorted = []
         result_naver = []
         for product_naver_raw in result_naver_raw:
@@ -145,22 +112,6 @@ def search(event=None):
             if count_naver > 0:
                 result_naver.append((word_naver, count_naver))
 
-        #11번가 검색 결과 sorting
-        result_11st_non_sorted = []
-        result_11st = []
-        for product_11st_raw in result_11st_raw:
-            products_11st_non_first = product_11st_raw.split()#[2:]
-            product_11st_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_11st_non_korean_deleted).lower() for product_11st_non_korean_deleted in products_11st_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_11st_non_korean_deleted)]
-            result_11st_non_sorted.extend(product_11st_organization)
-
-        results_counted_11st = Counter(result_11st_non_sorted)
-        results_sorted_11st = sorted(results_counted_11st.items(), key=lambda x: x[1], reverse=True)
-
-        for word_11st, count_11st in results_sorted_11st:
-            if count_11st > 0:
-                result_11st.append((word_11st, count_11st))
-
-        #지마켓 검색 결과 sorting
         result_gmarket_non_sorted = []
         result_gmarket = []
         for product_gmarket_raw in results_gmarket_raw:
@@ -176,33 +127,27 @@ def search(event=None):
                 result_gmarket.append((word_gmarket, count_gmarket))
 
         # 검색 결과 출력
-        result_text_naver.delete(1.0, tk.END)
-        result_text_11st.delete(1.0, tk.END)
-        result_text_gmarket.delete(1.0, tk.END)
-        result_text_forsell.delete(1.0, tk.END)
-        
-        result_text_naver.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
-        for product_name, count in result_naver:
-            product_name = product_name.strip("(),'") 
-            result_text_naver.insert(tk.END, f"{product_name}: {count}\n")
-        result_text_11st.insert(tk.END, "11번가 검색 결과:\n")
-        for product_name, count in result_11st:
-            product_name = product_name.strip("(),'") 
-            result_text_11st.insert(tk.END, f"- {product_name}: {count}\n")#오류 : count가 1만 나옴
-        result_text_gmarket.insert(tk.END, "지마켓 검색 결과:\n")
+        result_text_n.delete(1.0, tk.END)
+        result_text_n.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
+        for word, count in result_naver:
+            word = word.strip("(),'") 
+            result_text_n.insert(tk.END, f"{word}: {count}\n")
+        result_text_g.delete(1.0, tk.END)
+        result_text_g.insert(tk.END, "\n지마켓 검색 결과:\n")
         for product_name, count in result_gmarket:
             product_name = product_name.strip("(),'") 
-            result_text_gmarket.insert(tk.END, f"- {product_name}: {count}\n")
-        result_text_forsell.insert(tk.END, "포셀 검색 결과:\n")
+            result_text_g.insert(tk.END, f"- {product_name}: {count}\n")
+        result_text_f.delete(1.0, tk.END)
+        result_text_f.insert(tk.END, "\n포셀 검색 결과:\n")
         for keyword in result_forsell:
-            result_text_forsell.insert(tk.END, f"- {keyword}\n")
+            result_text_f.insert(tk.END, f"- {keyword}\n")
     finally:
         browser.quit()
 
 # Tkinter 윈도우 생성
 root = tk.Tk()
 root.title("검색 앱")
-root.geometry("2000x800")
+root.geometry("1500x800")
 
 # 라벨과 엔트리 위젯 생성
 label = ttk.Label(root, text="검색어를 입력하세요:")
@@ -216,26 +161,21 @@ search_button = ttk.Button(root, text="검색", command=search)
 search_button.grid(row=0, column=2, padx=5, pady=5)
 
 # 네이버 검색 결과를 표시할 텍스트 박스 생성
-result_text_naver = tk.Text(root, height=20, width=40)
-result_text_naver.grid(row=1, column=0, padx=5, pady=5)
-
-# 11번가 검색 결과를 표시할 텍스트 박스 생성
-result_text_11st = tk.Text(root, height=20, width=40)
-result_text_11st.grid(row=1, column=1, padx=5, pady=5)
+result_text_n = tk.Text(root, height=20, width=40)
+result_text_n.grid(row=1, column=0, padx=5, pady=5)
 
 # 지마켓 검색 결과를 표시할 텍스트 박스 생성
-result_text_gmarket = tk.Text(root, height=20, width=40)
-result_text_gmarket.grid(row=1, column=2, padx=5, pady=5)
+result_text_g = tk.Text(root, height=20, width=40)
+result_text_g.grid(row=1, column=1, padx=5, pady=5)
 
 # 포셀 검색 결과를 표시할 텍스트 박스 생성
-result_text_forsell = tk.Text(root, height=20, width=40)
-result_text_forsell.grid(row=1, column=3, padx=5, pady=5)
+result_text_f = tk.Text(root, height=20, width=40)
+result_text_f.grid(row=1, column=2, padx=5, pady=5)
 
 # 텍스트의 글자 크기 설정
-result_text_naver.config(font=("Courier", 15))
-result_text_11st.config(font=("Courier", 15))
-result_text_gmarket.config(font=("Courier", 15))
-result_text_forsell.config(font=("Courier", 15))
+result_text_n.config(font=("Courier", 15))
+result_text_g.config(font=("Courier", 15))
+result_text_f.config(font=("Courier", 15))
 
 # 엔터 키를 누르면 검색 버튼 클릭
 root.bind('<Return>', search)
