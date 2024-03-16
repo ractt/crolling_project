@@ -46,18 +46,8 @@ while True:
     before_h = after_h
     
     
-    
-#일반 상품 추출 xpath 이용할 듯
-    
-    
 # 현재 페이지의 모든 상품명을 가져와서 리스트에 추가
 product_elements = browser.find_elements(By.CLASS_NAME, 'c-card-item__name')
-
-
-
-
-
-
 
 for element in product_elements:
     product_names.append(element.text)

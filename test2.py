@@ -37,32 +37,26 @@ def search_naver(keyword, browser):
 
     return result_naver_raw
 
-#11번가 검색 함수
+# 11번가 검색 함수
 def search_11st(keyword, browser):
     browser.get(f'https://search.11st.co.kr/pc/total-search?kwd={keyword}&tabId=TOTAL_SEARCH')
     time.sleep(2)
     result_11st_raw = []
 
     commonPrd_11st = browser.find_element(By.XPATH, "//*[@id='section_commonPrd']/div[2]/ul")
-    content_11st =commonPrd_11st.find_elements(By.CLASS_NAME, "c-card-item__name")
+    content_11st = commonPrd_11st.find_elements(By.CLASS_NAME, "c-card-item__name")
     
-    all_words = []
-    for element_11st in content_11st:
-        product_name_11 = element_11st.text
-        if "상품명" in product_name_11:
-            product_name_11 = product_name_11.split("상품명")[1].strip()
-        first_space_index = product_name_11.find(" ")
+    for element_11st_raw in content_11st:
+        element_11st_text = element_11st_raw.text
+        if "상품명" in element_11st_text:
+            element_11st_text_non_productName = element_11st_text.split("상품명")[1].strip() 
+        element_11st = element_11st_text_non_productName
+        first_space_index = element_11st_text_non_productName .find(" ")
         if first_space_index != -1:
-            product_name_11 = product_name_11[first_space_index+1:].strip()
-        product_name_11 = re.sub(r'[^가-힣\s]', '', product_name_11)
-        words = product_name_11.split()
-        all_words.extend(words)
-
-    word_counter = Counter(all_words)
-    sorted_word_counts = sorted(word_counter.items(), key=lambda x: x[1], reverse=True)
-
-    # 가공된 검색 결과를 리스트로 반환
-    result_11st_raw = [word_count[0] for word_count in sorted_word_counts]
+            element_non_blank = element_11st_text_non_productName[first_space_index+1:].strip()
+            element_11st = element_non_blank.split()
+        
+        result_11st_raw.extend(element_11st)
 
     return result_11st_raw 
 
@@ -130,7 +124,7 @@ def search(event=None):
         # 지마켓 검색
         results_gmarket_raw = search_gmarket(keyword)
 
-        #네이버 쇼핑 검색 결과 sorting
+        # 네이버 쇼핑 검색 결과 sorting
         result_naver_non_sorted = []
         result_naver = []
         for product_naver_raw in result_naver_raw:
@@ -142,14 +136,15 @@ def search(event=None):
         results_sorted_naver = sorted(results_counted_naver.items(), key=lambda x: x[1], reverse=True)
 
         for word_naver, count_naver in results_sorted_naver:
-            if count_naver > 0:
+            if count_naver > 1: #빈도수 
                 result_naver.append((word_naver, count_naver))
 
-        #11번가 검색 결과 sorting
+        # 11번가 검색 결과 sorting
         result_11st_non_sorted = []
         result_11st = []
         for product_11st_raw in result_11st_raw:
-            products_11st_non_first = product_11st_raw.split()#[2:]
+            #products_11st_non_first = product_11st_raw.split()[0:]
+            products_11st_non_first = product_11st_raw.split()[1:]
             product_11st_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_11st_non_korean_deleted).lower() for product_11st_non_korean_deleted in products_11st_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_11st_non_korean_deleted)]
             result_11st_non_sorted.extend(product_11st_organization)
 
@@ -157,14 +152,14 @@ def search(event=None):
         results_sorted_11st = sorted(results_counted_11st.items(), key=lambda x: x[1], reverse=True)
 
         for word_11st, count_11st in results_sorted_11st:
-            if count_11st > 0:
+            if count_11st > 1: #빈도수
                 result_11st.append((word_11st, count_11st))
 
-        #지마켓 검색 결과 sorting
+        # 지마켓 검색 결과 sorting
         result_gmarket_non_sorted = []
         result_gmarket = []
         for product_gmarket_raw in results_gmarket_raw:
-            products_gmarket_non_first = product_gmarket_raw.split()#[2:]
+            products_gmarket_non_first = product_gmarket_raw.split()[2:]
             product_gmarket_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_gmarket_non_korean_deleted).lower() for product_gmarket_non_korean_deleted in products_gmarket_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_gmarket_non_korean_deleted)]
             result_gmarket_non_sorted.extend(product_gmarket_organization)
 
@@ -172,7 +167,7 @@ def search(event=None):
         results_sorted_gmarket = sorted(results_counted_gmarket.items(), key=lambda x: x[1], reverse=True)
 
         for word_gmarket, count_gmarket in results_sorted_gmarket:
-            if count_gmarket > 0:
+            if count_gmarket > 1: #빈도수 
                 result_gmarket.append((word_gmarket, count_gmarket))
 
         # 검색 결과 출력
@@ -188,16 +183,20 @@ def search(event=None):
         result_text_11st.insert(tk.END, "11번가 검색 결과:\n")
         for product_name, count in result_11st:
             product_name = product_name.strip("(),'") 
-            result_text_11st.insert(tk.END, f"- {product_name}: {count}\n")#오류 : count가 1만 나옴
+            result_text_11st.insert(tk.END, f"{product_name}: {count}\n")
         result_text_gmarket.insert(tk.END, "지마켓 검색 결과:\n")
         for product_name, count in result_gmarket:
             product_name = product_name.strip("(),'") 
-            result_text_gmarket.insert(tk.END, f"- {product_name}: {count}\n")
+            result_text_gmarket.insert(tk.END, f"{product_name}: {count}\n")
         result_text_forsell.insert(tk.END, "포셀 검색 결과:\n")
         for keyword in result_forsell:
-            result_text_forsell.insert(tk.END, f"- {keyword}\n")
+            result_text_forsell.insert(tk.END, f"{keyword}\n")
     finally:
         browser.quit()
+
+# 클립보드에 텍스트 복사하는 함수
+def copy_to_clipboard(text):
+    pyperclip.copy(text)
 
 # Tkinter 윈도우 생성
 root = tk.Tk()
@@ -236,6 +235,19 @@ result_text_naver.config(font=("Courier", 15))
 result_text_11st.config(font=("Courier", 15))
 result_text_gmarket.config(font=("Courier", 15))
 result_text_forsell.config(font=("Courier", 15))
+
+# 클립보드에 복사하는 버튼 추가
+copy_naver_button = ttk.Button(root, text="네이버 결과 복사", command=lambda: copy_to_clipboard(result_text_naver.get(1.0, tk.END)))
+copy_naver_button.grid(row=2, column=0, padx=5, pady=5)
+
+copy_11st_button = ttk.Button(root, text="11번가 결과 복사", command=lambda: copy_to_clipboard(result_text_11st.get(1.0, tk.END)))
+copy_11st_button.grid(row=2, column=1, padx=5, pady=5)
+
+copy_gmarket_button = ttk.Button(root, text="지마켓 결과 복사", command=lambda: copy_to_clipboard(result_text_gmarket.get(1.0, tk.END)))
+copy_gmarket_button.grid(row=2, column=2, padx=5, pady=5)
+
+copy_forsell_button = ttk.Button(root, text="포셀 결과 복사", command=lambda: copy_to_clipboard(result_text_forsell.get(1.0, tk.END)))
+copy_forsell_button.grid(row=2, column=3, padx=5, pady=5)
 
 # 엔터 키를 누르면 검색 버튼 클릭
 root.bind('<Return>', search)

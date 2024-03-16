@@ -14,173 +14,174 @@ import pyperclip
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 
-def search(event=None):
-    #검색 단어 받기
-    keyword = entry.get()
-    # 크롬 옵션 설정
-    chrome_options = Options()
-    # 시크릿 모드 활성화
-    chrome_options.add_argument("--incognito")  
-    browser = webdriver.Chrome(options=chrome_options)
-    
-    
-    #사이트 검색
-    
-    # 포셀 검색
-    browser.get('http://forsell.co.kr/login/')
-    time.sleep(2)
-    id_input_forsell = browser.find_element(By.NAME, 'username')
-    pw_input_forsell = browser.find_element(By.NAME, 'password')
-    id_input_forsell.send_keys('aaa10130')
-    pw_input_forsell.send_keys('tjgktjd123') #사용자화 필요함.(개인 아이디, 비번)
-    login_button_forsell = browser.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
-    login_button_forsell.click()
-    time.sleep(5)
-    SearchTab_forsell = browser.find_element(By.LINK_TEXT, '연관키워드 검색')
-    SearchTab_forsell.click()
-    time.sleep(1)
-    # 광고가 닫히는 동작
-    try:
-    # 아무 곳이나 한 번 클릭하여 광고를 닫음
-        action_offad_forsell = ActionChains(browser)
-    # 아무 곳이나 한 번 클릭하도록 설정
-        action_offad_forsell.move_by_offset(100, 100).click().perform()
-        
-    except NoSuchElementException:
-    # 해당 요소가 없는 경우 예외 처리
-        print("닫기 없음________________________________________")
-        pass
-    time.sleep(4)
-    #키워드 검색
-    keyword_input_forsell = browser.find_element(By.ID, 'searchKeyword')
-    keyword_input_forsell.send_keys(keyword)
-    search_button_forsell = browser.find_element(By.ID, 'searchBtn')
-    search_button_forsell.click()
-    time.sleep(7)
-    coupang1_inforsell = browser.find_element(By.ID, 'coupangReKeyword')
-    coupang2_inforsell = browser.find_element(By.ID, 'coupangAutoKeyword')
-    coupang1_inforsell.click()
-    coupang2_inforsell.click()
-    time.sleep(2)
-    copy_forsell_keyword = browser.find_element(By.ID, 'copyKeyword')
-    copy_forsell_keyword.click()
-    clipboard_content_forsell = pyperclip.paste()
-    results_forsell = clipboard_content_forsell.split(',')
-
-    # 네이버 쇼핑 검색
+# 네이버 쇼핑 검색 함수
+def search_naver(keyword, browser):
     browser.get(f'https://search.shopping.naver.com/search/all?query={keyword}')
     time.sleep(2)
-    # 스크롤 전 높이 
     before_h_naver = browser.execute_script("return window.scrollY")
-    # 모든 상품명을 저장할 리스트 생성
     result_naver_raw = []
 
-    # 무한 스크롤
     while True:
-    # 맨 아래로 스크롤 내린다.
         browser.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
-    # 스크롤 사이 페이지 로딩 시간 
         time.sleep(1)
-    # 스크롤 후 높이 
         after_h_naver = browser.execute_script("return window.scrollY")
-    # 스크롤 높이가 변하지 않으면 더 이상 스크롤할 필요 없음
+
         if after_h_naver == before_h_naver:
             break
-    # 스크롤 이전 높이 업데이트
+
         before_h_naver = after_h_naver
-    
-    # 현재 페이지의 모든 상품명을 가져와서 리스트에 추가
+
     content_naver = browser.find_elements(By.CLASS_NAME, 'product_title__Mmw2K')
     for element_naver in content_naver:
         result_naver_raw.append(element_naver.text)
 
-    # 지마켓 검색
+    return result_naver_raw
+
+#11번가 검색 함수
+def search_11st(keyword, browser):
+    browser.get(f'https://search.11st.co.kr/pc/total-search?kwd={keyword}&tabId=TOTAL_SEARCH')
+    time.sleep(2)
+    # 모든 상품명을 저장할 리스트 생성
+    result_11st_raw = []
+
+    # XPath를 사용하여 해당 ID를 가진 요소 찾기
+    element_11 = browser.find_element(By.XPATH, "//*[@id='section_commonPrd']/div[2]/ul")
+    # 해당 요소 내의 상품명 요소들을 찾기
+    st11_results = element_11.find_elements(By.CLASS_NAME, "c-card-item__name")
+    
+    # 상품명을 저장할 리스트 생성
+    all_words = []
+    # 각 상품 요소를 순회하며 상품명 가져오기
+    for product_element_11 in st11_results:
+        product_name_11 = product_element_11.text
+        if "상품명" in product_name_11:
+            product_name_11 = product_name_11.split("상품명")[1].strip()
+        # 상품명의 첫 번째 단어 삭제
+        first_space_index = product_name_11.find(" ")
+        if first_space_index != -1:
+            product_name_11 = product_name_11[first_space_index+1:].strip()
+        # 영어, 숫자, 특수기호를 제외한 문자열만 남기기
+        product_name_11 = re.sub(r'[^가-힣\s]', '', product_name_11)
+        # 상품명을 공백을 기준으로 단어로 분리하여 리스트에 추가
+        words = product_name_11.split()
+        all_words.extend(words)
+
+
+    # 각 단어의 빈도수 계산
+    word_counter = Counter(all_words)
+
+    # 빈도수에 따라 내림차순으로 정렬
+    sorted_word_counts = sorted(word_counter.items(), key=lambda x: x[1], reverse=True)
+# 지마켓 검색 함수
+def search_gmarket(keyword):
     url_gmarket = f"https://browse.gmarket.co.kr/search?keyword={keyword}"
     response_gmarket = requests.get(url_gmarket)
     soup_gmarket = BeautifulSoup(response_gmarket.text, 'html.parser')
     items_gmarket_text_selected = soup_gmarket.select(".text__item")
     results_gmarket_raw = [item_gmarket_element.text.strip() for item_gmarket_element in items_gmarket_text_selected]
-    browser.quit()
+    return results_gmarket_raw
 
+# 검색 함수
+def search(event=None):
+    keyword = entry.get()
+    chrome_options = Options()
+    chrome_options.add_argument("--incognito")
+    browser = webdriver.Chrome(options=chrome_options)
 
-    #검색 결과 수정
-    
-    #네이버 
-    # 결과 리스트
-    result_naver_non_sorted = []
-    result_naver = []
-    # 단어 추출 및 정리
-    for product_naver_raw in result_naver_raw:
-        # 첫 번째 단어를 제외한 단어들 추출 first deleted
-        products_naver_non_first = product_naver_raw.split()[1:]
-        # 영어, 숫자, 특수기호를 포함한 단어 제거 및 소문자로 변환 non korean deleted 
-        product_naver_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_naver_non_korean_deleted).lower() for product_naver_non_korean_deleted in products_naver_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_naver_non_korean_deleted)]
-        # 결과 리스트에 추가
-        result_naver_non_sorted.extend(product_naver_organization)
+    try:
+        # 포셀 사이트 로그인 및 검색
+        browser.get('http://forsell.co.kr/login/')
+        time.sleep(2)
+        id_input_forsell = browser.find_element(By.NAME, 'username')
+        pw_input_forsell = browser.find_element(By.NAME, 'password')
+        id_input_forsell.send_keys('aaa10130')
+        pw_input_forsell.send_keys('tjgktjd123')
+        login_button_forsell = browser.find_element(By.CSS_SELECTOR, 'button[type="submit"]')
+        login_button_forsell.click()
+        time.sleep(5)
+        SearchTab_forsell = browser.find_element(By.LINK_TEXT, '연관키워드 검색')
+        SearchTab_forsell.click()
+        time.sleep(1)
 
-    # 단어 빈도수 계산
-    results_counted_naver = Counter(result_naver_non_sorted)
+        try:
+            # 광고 닫기
+            action_offad_forsell = ActionChains(browser)
+            action_offad_forsell.move_by_offset(100, 100).click().perform()
+        except NoSuchElementException:
+            print("닫기 없음________________________________________")
+            pass
 
-    # 빈도수에 따라 정렬
-    results_sorted_naver = sorted(results_counted_naver.items(), key=lambda x: x[1], reverse=True)
+        time.sleep(4)
+        keyword_input_forsell = browser.find_element(By.ID, 'searchKeyword')
+        keyword_input_forsell.send_keys(keyword)
+        search_button_forsell = browser.find_element(By.ID, 'searchBtn')
+        search_button_forsell.click()
+        time.sleep(7)
+        coupang1_inforsell = browser.find_element(By.ID, 'coupangReKeyword')
+        coupang2_inforsell = browser.find_element(By.ID, 'coupangAutoKeyword')
+        coupang1_inforsell.click()
+        coupang2_inforsell.click()
+        time.sleep(2)
+        copy_forsell_keyword = browser.find_element(By.ID, 'copyKeyword')
+        copy_forsell_keyword.click()
+        clipboard_content_forsell = pyperclip.paste()
+        result_forsell = clipboard_content_forsell.split(',')
 
-    # 빈도수에 따라 결과 저장
-    for word_naver, count_naver in results_sorted_naver:
-        if count_naver > 0:
-            result_naver.append((word_naver, count_naver))
-    
-    #지마켓  여기부터 수정 
-    # 각 상품명의 첫 번째와 두 번째 단어를 제외하고 단어들 추출
-    words_g = []
-    gmarket_product_results = []
-    for phrase in results_gmarket_raw:
-        # 상품명을 공백을 기준으로 단어로 분리
-        words_in_phrase = phrase.split()
-        # 첫 번째와 두 번째 단어를 제외한 나머지 단어들을 words 리스트에 추가
-        words_g.extend(words_in_phrase[2:])
+        # 네이버 쇼핑 검색
+        result_naver_raw = search_naver(keyword, browser)
+        
+        # 지마켓 검색
+        results_gmarket_raw = search_gmarket(keyword)
 
-    # 영어, 숫자, 특수기호를 공백으로 바꾸기
-    pattern = re.compile('[a-zA-Z0-9\W]+')
-    modified_list = [pattern.sub(' ', word) for word in words_g]
+        result_naver_non_sorted = []
+        result_naver = []
+        for product_naver_raw in result_naver_raw:
+            products_naver_non_first = product_naver_raw.split()[1:]
+            product_naver_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_naver_non_korean_deleted).lower() for product_naver_non_korean_deleted in products_naver_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_naver_non_korean_deleted)]
+            result_naver_non_sorted.extend(product_naver_organization)
 
-    # 모든 단어를 하나의 문자열로 합치기
-    combined_string = ' '.join(modified_list)
+        results_counted_naver = Counter(result_naver_non_sorted)
+        results_sorted_naver = sorted(results_counted_naver.items(), key=lambda x: x[1], reverse=True)
 
-    # 단어 빈도수 계산
-    word_count = Counter(combined_string.split())
+        for word_naver, count_naver in results_sorted_naver:
+            if count_naver > 0:
+                result_naver.append((word_naver, count_naver))
 
-    # 빈도수가 1 이상인 단어들만 추출
-    filtered_words = {word: count for word, count in word_count.items() if count > 1}
+        result_gmarket_non_sorted = []
+        result_gmarket = []
+        for product_gmarket_raw in results_gmarket_raw:
+            products_gmarket_non_first = product_gmarket_raw.split()#[2:]
+            product_gmarket_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_gmarket_non_korean_deleted).lower() for product_gmarket_non_korean_deleted in products_gmarket_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_gmarket_non_korean_deleted)]
+            result_gmarket_non_sorted.extend(product_gmarket_organization)
 
-    # 빈도수에 따라 내림차순으로 정렬
-    sorted_words_g = sorted(filtered_words.items(), key=lambda x: x[1], reverse=True)
-    
-    # 빈도수에 따라 결과 입력
-    for word_g, count_g in sorted_words_g:
-        if count_g > 0:
-            gmarket_product_results.append((word_g, count_g))
-    
+        results_counted_gmarket = Counter(result_gmarket_non_sorted)
+        results_sorted_gmarket = sorted(results_counted_gmarket.items(), key=lambda x: x[1], reverse=True)
 
-    # 결과 출력
-    result_text_n.delete(1.0, tk.END)
-    result_text_n.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
-    for word, count in result_naver:
-        # 괄호와 작은 따옴표 제거 후 출력
-        word = word.strip("(),'") 
-        result_text_n.insert(tk.END, f"{word}: {count}\n")
-    result_text_g.insert(tk.END, "\n지마켓 검색 결과:\n")
-    for product_name, count in gmarket_product_results:
-        product_name = product_name.strip("(),'") 
-        result_text_g.insert(tk.END, f"- {product_name}: {count}\n")
-    result_text_f.insert(tk.END, "\n포셀 검색 결과:\n")
-    for keyword in results_forsell:
-        result_text_f.insert(tk.END, f"- {keyword}\n")
+        for word_gmarket, count_gmarket in results_sorted_gmarket:
+            if count_gmarket > 0:
+                result_gmarket.append((word_gmarket, count_gmarket))
+
+        # 검색 결과 출력
+        result_text_n.delete(1.0, tk.END)
+        result_text_n.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
+        for word, count in result_naver:
+            word = word.strip("(),'") 
+            result_text_n.insert(tk.END, f"{word}: {count}\n")
+        result_text_g.delete(1.0, tk.END)
+        result_text_g.insert(tk.END, "\n지마켓 검색 결과:\n")
+        for product_name, count in result_gmarket:
+            product_name = product_name.strip("(),'") 
+            result_text_g.insert(tk.END, f"- {product_name}: {count}\n")
+        result_text_f.delete(1.0, tk.END)
+        result_text_f.insert(tk.END, "\n포셀 검색 결과:\n")
+        for keyword in result_forsell:
+            result_text_f.insert(tk.END, f"- {keyword}\n")
+    finally:
+        browser.quit()
 
 # Tkinter 윈도우 생성
 root = tk.Tk()
 root.title("검색 앱")
-
-# 창 크기 조절
 root.geometry("1500x800")
 
 # 라벨과 엔트리 위젯 생성
@@ -205,7 +206,6 @@ result_text_g.grid(row=1, column=1, padx=5, pady=5)
 # 포셀 검색 결과를 표시할 텍스트 박스 생성
 result_text_f = tk.Text(root, height=20, width=40)
 result_text_f.grid(row=1, column=2, padx=5, pady=5)
-
 
 # 텍스트의 글자 크기 설정
 result_text_n.config(font=("Courier", 15))
