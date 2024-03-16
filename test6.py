@@ -65,7 +65,7 @@ def search(event=None):
     copy_forsell_keyword = browser.find_element(By.ID, 'copyKeyword')
     copy_forsell_keyword.click()
     clipboard_content_forsell = pyperclip.paste()
-    results_forsell = clipboard_content_forsell.split(',')
+    result_forsell = clipboard_content_forsell.split(',')
 
     # 네이버 쇼핑 검색
     browser.get(f'https://search.shopping.naver.com/search/all?query={keyword}')
@@ -106,7 +106,6 @@ def search(event=None):
     #검색 결과 수정
     
     #네이버 
-    # 결과 리스트
     result_naver_non_sorted = []
     result_naver = []
     # 단어 추출 및 정리
@@ -129,39 +128,32 @@ def search(event=None):
         if count_naver > 0:
             result_naver.append((word_naver, count_naver))
     
-    #지마켓  여기부터 수정 
-    # 각 상품명의 첫 번째와 두 번째 단어를 제외하고 단어들 추출
-    words_g = []
-    gmarket_product_results = []
-    for phrase in results_gmarket_raw:
-        # 상품명을 공백을 기준으로 단어로 분리
-        words_in_phrase = phrase.split()
-        # 첫 번째와 두 번째 단어를 제외한 나머지 단어들을 words 리스트에 추가
-        words_g.extend(words_in_phrase[2:])
-
-    # 영어, 숫자, 특수기호를 공백으로 바꾸기
-    pattern = re.compile('[a-zA-Z0-9\W]+')
-    modified_list = [pattern.sub(' ', word) for word in words_g]
-
-    # 모든 단어를 하나의 문자열로 합치기
-    combined_string = ' '.join(modified_list)
-
+    #지마켓  
+    result_gmarket_non_sorted = []
+    result_gmarket = []
+    # 단어 추출 및 정리
+    for product_gmarket_raw in results_gmarket_raw:
+        # 첫 번째 단어를 제외한 단어들 추출 first deleted
+        products_gmarket_non_first = product_gmarket_raw.split()#[2:]
+        # 영어, 숫자, 특수기호를 포함한 단어 제거 및 소문자로 변환 non korean deleted 
+        product_gmarket_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_gmarket_non_korean_deleted).lower() for product_gmarket_non_korean_deleted in products_gmarket_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_gmarket_non_korean_deleted)]
+        # 결과 리스트에 추가
+        result_gmarket_non_sorted.extend(product_gmarket_organization)
+        
     # 단어 빈도수 계산
-    word_count = Counter(combined_string.split())
+    results_counted_gmarket = Counter(result_gmarket_non_sorted)
 
-    # 빈도수가 1 이상인 단어들만 추출
-    filtered_words = {word: count for word, count in word_count.items() if count > 1}
+    # 빈도수에 따라 정렬
+    results_sorted_gmarket = sorted(results_counted_gmarket.items(), key=lambda x: x[1], reverse=True)
 
-    # 빈도수에 따라 내림차순으로 정렬
-    sorted_words_g = sorted(filtered_words.items(), key=lambda x: x[1], reverse=True)
-    
-    # 빈도수에 따라 결과 입력
-    for word_g, count_g in sorted_words_g:
-        if count_g > 0:
-            gmarket_product_results.append((word_g, count_g))
+    # 빈도수에 따라 결과 저장
+    for word_gmarket, count_gmarket in results_sorted_gmarket:
+        if count_gmarket > 0:
+            result_gmarket.append((word_gmarket, count_gmarket))
     
 
     # 결과 출력
+    
     result_text_n.delete(1.0, tk.END)
     result_text_n.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
     for word, count in result_naver:
@@ -169,11 +161,11 @@ def search(event=None):
         word = word.strip("(),'") 
         result_text_n.insert(tk.END, f"{word}: {count}\n")
     result_text_g.insert(tk.END, "\n지마켓 검색 결과:\n")
-    for product_name, count in gmarket_product_results:
+    for product_name, count in result_gmarket:
         product_name = product_name.strip("(),'") 
         result_text_g.insert(tk.END, f"- {product_name}: {count}\n")
     result_text_f.insert(tk.END, "\n포셀 검색 결과:\n")
-    for keyword in results_forsell:
+    for keyword in result_forsell:
         result_text_f.insert(tk.END, f"- {keyword}\n")
 
 # Tkinter 윈도우 생성
