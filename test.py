@@ -50,13 +50,7 @@ def search_11st(keyword, browser):
         element_11st_text = element_11st_raw.text
         if "상품명" in element_11st_text:
             element_11st_text_non_productName = element_11st_text.split("상품명")[1].strip() 
-        element_11st = element_11st_text_non_productName
-        first_space_index = element_11st_text_non_productName .find(" ")
-        if first_space_index != -1:
-            element_non_blank = element_11st_text_non_productName[first_space_index+1:].strip()
-            element_11st = element_non_blank.split()
-        
-        result_11st_raw.extend(element_11st)
+            result_11st_raw.append(element_11st_text_non_productName)  # 상품명을 리스트에 추가
 
     return result_11st_raw 
 
@@ -136,29 +130,29 @@ def search(event=None):
         results_sorted_naver = sorted(results_counted_naver.items(), key=lambda x: x[1], reverse=True)
 
         for word_naver, count_naver in results_sorted_naver:
-            if count_naver > 0:
+            if count_naver >= 2:  # 빈도수가 2 이상인 단어만 저장
                 result_naver.append((word_naver, count_naver))
-
+                
         # 11번가 검색 결과 sorting
         result_11st_non_sorted = []
         result_11st = []
         for product_11st_raw in result_11st_raw:
-            products_11st_non_first = product_11st_raw.split()#[2:]
+            products_11st_non_first = product_11st_raw.split()[1:]
             product_11st_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_11st_non_korean_deleted).lower() for product_11st_non_korean_deleted in products_11st_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_11st_non_korean_deleted)]
             result_11st_non_sorted.extend(product_11st_organization)
-            
+
         results_counted_11st = Counter(result_11st_non_sorted)
         results_sorted_11st = sorted(results_counted_11st.items(), key=lambda x: x[1], reverse=True)
 
         for word_11st, count_11st in results_sorted_11st:
-            if count_11st > 0:
+            if count_11st >= 2:  # 빈도수가 2 이상인 단어만 저장
                 result_11st.append((word_11st, count_11st))
 
         # 지마켓 검색 결과 sorting
         result_gmarket_non_sorted = []
         result_gmarket = []
         for product_gmarket_raw in results_gmarket_raw:
-            products_gmarket_non_first = product_gmarket_raw.split()#[2:]
+            products_gmarket_non_first = product_gmarket_raw.split()[2:]
             product_gmarket_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_gmarket_non_korean_deleted).lower() for product_gmarket_non_korean_deleted in products_gmarket_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_gmarket_non_korean_deleted)]
             result_gmarket_non_sorted.extend(product_gmarket_organization)
 
@@ -166,7 +160,7 @@ def search(event=None):
         results_sorted_gmarket = sorted(results_counted_gmarket.items(), key=lambda x: x[1], reverse=True)
 
         for word_gmarket, count_gmarket in results_sorted_gmarket:
-            if count_gmarket > 0:
+            if count_gmarket >= 2:  # 빈도수가 2 이상인 단어만 저장
                 result_gmarket.append((word_gmarket, count_gmarket))
 
         # 검색 결과 출력
@@ -175,21 +169,21 @@ def search(event=None):
         result_text_gmarket.delete(1.0, tk.END)
         result_text_forsell.delete(1.0, tk.END)
         
-        result_text_naver.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
+        #result_text_naver.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
         for product_name, count in result_naver:
             product_name = product_name.strip("(),'") 
-            result_text_naver.insert(tk.END, f"{product_name}: {count}\n")
-        result_text_11st.insert(tk.END, "11번가 검색 결과:\n")
+            result_text_naver.insert(tk.END, f"{product_name} {count}\n")
+        #result_text_11st.insert(tk.END, "11번가 검색 결과:\n")
         for product_name, count in result_11st:
             product_name = product_name.strip("(),'") 
-            result_text_11st.insert(tk.END, f"- {product_name}: {count}\n")
-        result_text_gmarket.insert(tk.END, "지마켓 검색 결과:\n")
+            result_text_11st.insert(tk.END, f"{product_name} {count}\n")
+        #result_text_gmarket.insert(tk.END, "지마켓 검색 결과:\n")
         for product_name, count in result_gmarket:
             product_name = product_name.strip("(),'") 
-            result_text_gmarket.insert(tk.END, f"- {product_name}: {count}\n")
-        result_text_forsell.insert(tk.END, "포셀 검색 결과:\n")
+            result_text_gmarket.insert(tk.END, f"{product_name} {count}\n")
+        #result_text_forsell.insert(tk.END, "포셀 검색 결과:\n")
         for keyword in result_forsell:
-            result_text_forsell.insert(tk.END, f"- {keyword}\n")
+            result_text_forsell.insert(tk.END, f"{keyword}\n")
     finally:
         browser.quit()
 
@@ -235,18 +229,26 @@ result_text_11st.config(font=("Courier", 15))
 result_text_gmarket.config(font=("Courier", 15))
 result_text_forsell.config(font=("Courier", 15))
 
-# 클립보드에 복사하는 버튼 추가
-copy_button_naver = ttk.Button(root, text="네이버 복사", command=lambda: copy_to_clipboard(result_text_naver.get(1.0, tk.END)))
-copy_button_naver.grid(row=2, column=0, padx=5, pady=5)
+# 네이버 검색 결과 복사 버튼
+copy_naver_button = ttk.Button(root, text="네이버 결과 복사", command=lambda: copy_to_clipboard(result_text_naver.get(1.0, tk.END)))
+copy_naver_button.grid(row=2, column=0, padx=5, pady=5)
+copy_11st_button = ttk.Button(root, text="11번가 결과 복사", command=lambda: copy_to_clipboard(result_text_11st.get(1.0, tk.END)))
+copy_11st_button.grid(row=2, column=1, padx=5, pady=5)
+copy_gmarket_button = ttk.Button(root, text="지마켓 결과 복사", command=lambda: copy_to_clipboard(result_text_gmarket.get(1.0, tk.END)))
+copy_gmarket_button.grid(row=2, column=2, padx=5, pady=5)
+copy_forsell_button = ttk.Button(root, text="포셀 결과 복사", command=lambda: copy_to_clipboard(result_text_forsell.get(1.0, tk.END)))
+copy_forsell_button.grid(row=2, column=3, padx=5, pady=5)
 
-copy_button_11st = ttk.Button(root, text="11번가 복사", command=lambda: copy_to_clipboard(result_text_11st.get(1.0, tk.END)))
-copy_button_11st.grid(row=2, column=1, padx=5, pady=5)
+#엑셀 버튼
+naver_button = ttk.Button(root, text="네이버 엑셀", command=lambda: None)
+naver_button.grid(row=3, column=0, padx=5, pady=5)
+eleven_street_button = ttk.Button(root, text="11번가 엑셀", command=lambda: None)
+eleven_street_button.grid(row=3, column=1, padx=5, pady=5)
+gmarket_button = ttk.Button(root, text="지마켓 엑셀", command=lambda: None)
+gmarket_button.grid(row=3, column=2, padx=5, pady=5)
+forsell_button = ttk.Button(root, text="포셀 엑셀", command=lambda: None)
+forsell_button.grid(row=3, column=3, padx=5, pady=5)
 
-copy_button_gmarket = ttk.Button(root, text="지마켓 복사", command=lambda: copy_to_clipboard(result_text_gmarket.get(1.0, tk.END)))
-copy_button_gmarket.grid(row=2, column=2, padx=5, pady=5)
-
-copy_button_forsell = ttk.Button(root, text="포셀 복사", command=lambda: copy_to_clipboard(result_text_forsell.get(1.0, tk.END)))
-copy_button_forsell.grid(row=2, column=3, padx=5, pady=5)
 
 # 엔터 키를 누르면 검색 버튼 클릭
 root.bind('<Return>', search)

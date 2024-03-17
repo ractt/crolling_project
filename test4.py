@@ -13,6 +13,22 @@ import re
 import pyperclip
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
+import openpyxl
+
+
+# 엑셀 파일로 저장하는 함수
+def save_excel_file(filename, data):
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    
+    # 데이터를 엑셀 파일에 쓰기
+    for row, result in enumerate(data, start=1):
+        product, count = result.split()
+        sheet.cell(row=row, column=1).value = product
+        sheet.cell(row=row, column=2).value = int(count)
+    
+    # 파일 저장
+    wb.save(filename)
 
 # 네이버 쇼핑 검색 함수
 def search_naver(keyword, browser):
@@ -62,6 +78,21 @@ def search_gmarket(keyword):
     items_gmarket_text_selected = soup_gmarket.select(".text__item")
     results_gmarket_raw = [item_gmarket_element.text.strip() for item_gmarket_element in items_gmarket_text_selected]
     return results_gmarket_raw
+
+# 네이버 검색 결과를 엑셀 파일로 저장하는 함수
+def save_naver_to_excel():
+    global naver_results
+    save_excel_file("네이버_검색결과.xlsx", naver_results)
+
+# 11번가 검색 결과를 엑셀 파일로 저장하는 함수
+def save_11st_to_excel():
+    global eleven_street_results
+    save_excel_file("11번가_검색결과.xlsx", eleven_street_results)
+
+# 지마켓 검색 결과를 엑셀 파일로 저장하는 함수
+def save_gmarket_to_excel():
+    global gmarket_results
+    save_excel_file("지마켓_검색결과.xlsx", gmarket_results)
 
 # 검색 함수
 def search(event=None):
@@ -118,78 +149,40 @@ def search(event=None):
         # 지마켓 검색
         results_gmarket_raw = search_gmarket(keyword)
 
-        # 네이버 쇼핑 검색 결과 sorting
-        result_naver_non_sorted = []
-        result_naver = []
-        for product_naver_raw in result_naver_raw:
-            products_naver_non_first = product_naver_raw.split()[1:]
-            product_naver_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_naver_non_korean_deleted).lower() for product_naver_non_korean_deleted in products_naver_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_naver_non_korean_deleted)]
-            result_naver_non_sorted.extend(product_naver_organization)
-
-        results_counted_naver = Counter(result_naver_non_sorted)
-        results_sorted_naver = sorted(results_counted_naver.items(), key=lambda x: x[1], reverse=True)
-
-        for word_naver, count_naver in results_sorted_naver:
-            if count_naver >= 2:  # 빈도수가 2 이상인 단어만 저장
-                result_naver.append((word_naver, count_naver))
-                
-        # 11번가 검색 결과 sorting
-        result_11st_non_sorted = []
-        result_11st = []
-        for product_11st_raw in result_11st_raw:
-            products_11st_non_first = product_11st_raw.split()[1:]
-            product_11st_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_11st_non_korean_deleted).lower() for product_11st_non_korean_deleted in products_11st_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_11st_non_korean_deleted)]
-            result_11st_non_sorted.extend(product_11st_organization)
-
-        results_counted_11st = Counter(result_11st_non_sorted)
-        results_sorted_11st = sorted(results_counted_11st.items(), key=lambda x: x[1], reverse=True)
-
-        for word_11st, count_11st in results_sorted_11st:
-            if count_11st >= 2:  # 빈도수가 2 이상인 단어만 저장
-                result_11st.append((word_11st, count_11st))
-
-        # 지마켓 검색 결과 sorting
-        result_gmarket_non_sorted = []
-        result_gmarket = []
-        for product_gmarket_raw in results_gmarket_raw:
-            products_gmarket_non_first = product_gmarket_raw.split()[2:]
-            product_gmarket_organization = [re.sub(r'[^a-zA-Z가-힣]', '', product_gmarket_non_korean_deleted).lower() for product_gmarket_non_korean_deleted in products_gmarket_non_first if not re.match(r'[a-zA-Z0-9\W]+', product_gmarket_non_korean_deleted)]
-            result_gmarket_non_sorted.extend(product_gmarket_organization)
-
-        results_counted_gmarket = Counter(result_gmarket_non_sorted)
-        results_sorted_gmarket = sorted(results_counted_gmarket.items(), key=lambda x: x[1], reverse=True)
-
-        for word_gmarket, count_gmarket in results_sorted_gmarket:
-            if count_gmarket >= 2:  # 빈도수가 2 이상인 단어만 저장
-                result_gmarket.append((word_gmarket, count_gmarket))
-
+        # 검색 결과 저장
+        global naver_results, eleven_street_results, gmarket_results
+        naver_results = result_naver_raw
+        eleven_street_results = result_11st_raw
+        gmarket_results = results_gmarket_raw
+        
         # 검색 결과 출력
         result_text_naver.delete(1.0, tk.END)
         result_text_11st.delete(1.0, tk.END)
         result_text_gmarket.delete(1.0, tk.END)
-        result_text_forsell.delete(1.0, tk.END)
         
-        #result_text_naver.insert(tk.END, "네이버 쇼핑 검색 결과:\n")
-        for product_name, count in result_naver:
+        for product_name, count in naver_results:
             product_name = product_name.strip("(),'") 
             result_text_naver.insert(tk.END, f"{product_name} {count}\n")
-        #result_text_11st.insert(tk.END, "11번가 검색 결과:\n")
-        for product_name, count in result_11st:
+        for product_name, count in eleven_street_results:
             product_name = product_name.strip("(),'") 
             result_text_11st.insert(tk.END, f"{product_name} {count}\n")
-        #result_text_gmarket.insert(tk.END, "지마켓 검색 결과:\n")
-        for product_name, count in result_gmarket:
+        for product_name, count in gmarket_results:
             product_name = product_name.strip("(),'") 
             result_text_gmarket.insert(tk.END, f"{product_name} {count}\n")
-        #result_text_forsell.insert(tk.END, "포셀 검색 결과:\n")
-        for keyword in result_forsell:
-            result_text_forsell.insert(tk.END, f"{keyword}\n")
+
     finally:
         browser.quit()
+
 
 # 클립보드에 텍스트 복사하는 함수
 def copy_to_clipboard(text):
     pyperclip.copy(text)
+
+# 엑셀 버튼을 눌렀을 때 엑셀 파일로 저장하는 함수
+def save_to_excel():
+    global naver_results, eleven_street_results, gmarket_results
+    all_results = naver_results + eleven_street_results + gmarket_results
+    save_excel_file("검색결과.xlsx", all_results)
 
 # Tkinter 윈도우 생성
 root = tk.Tk()
@@ -240,12 +233,13 @@ copy_forsell_button = ttk.Button(root, text="포셀 결과 복사", command=lamb
 copy_forsell_button.grid(row=2, column=3, padx=5, pady=5)
 
 #엑셀 버튼
-naver_button = ttk.Button(root, text="네이버 엑셀", command=lambda: None)
-naver_button.grid(row=3, column=0, padx=5, pady=5)
-eleven_street_button = ttk.Button(root, text="11번가 엑셀", command=lambda: None)
-eleven_street_button.grid(row=3, column=1, padx=5, pady=5)
-gmarket_button = ttk.Button(root, text="지마켓 엑셀", command=lambda: None)
-gmarket_button.grid(row=3, column=2, padx=5, pady=5)
+# 각 사이트별 엑셀 버튼 생성
+excel_button_naver = ttk.Button(root, text="네이버 검색 결과 엑셀로 저장", command=save_naver_to_excel)
+excel_button_naver.grid(row=2, column=0, padx=5, pady=5)
+excel_button_11st = ttk.Button(root, text="11번가 검색 결과 엑셀로 저장", command=save_11st_to_excel)
+excel_button_11st.grid(row=2, column=1, padx=5, pady=5)
+excel_button_gmarket = ttk.Button(root, text="지마켓 검색 결과 엑셀로 저장", command=save_gmarket_to_excel)
+excel_button_gmarket.grid(row=2, column=2, padx=5, pady=5)
 forsell_button = ttk.Button(root, text="포셀 엑셀", command=lambda: None)
 forsell_button.grid(row=3, column=3, padx=5, pady=5)
 
