@@ -13,6 +13,7 @@ import re
 import pyperclip
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
+import openpyxl
 
 # 네이버 쇼핑 검색 함수
 def search_naver(keyword, browser):
@@ -65,6 +66,7 @@ def search_gmarket(keyword):
 
 # 검색 함수
 def search(event=None):
+    global keyword
     keyword = entry.get()
     chrome_options = Options()
     chrome_options.add_argument("--incognito")
@@ -191,6 +193,29 @@ def search(event=None):
 def copy_to_clipboard(text):
     pyperclip.copy(text)
 
+# 엑셀 파일 저장 함수
+def save_excel_file(filename, textbox):
+    # 엑셀 파일 생성
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    
+    excel_results = textbox.get(1.0, tk.END).splitlines()
+    # 공백 문자열 제거
+    excel_results = [line.strip() for line in excel_results if line.strip()]
+    
+    # 데이터를 엑셀 파일에 쓰기
+    for row, result in enumerate(excel_results, start=1):
+        try:
+            product, count = result.split()
+            sheet.cell(row=row, column=1).value = product
+            sheet.cell(row=row, column=2).value = int(count)
+        except ValueError:
+            print(f"Ignoring invalid data: {result}")
+    
+    # 파일 저장
+    wb.save(filename)
+
+
 # Tkinter 윈도우 생성
 root = tk.Tk()
 root.title("검색 앱")
@@ -239,15 +264,17 @@ copy_gmarket_button.grid(row=2, column=2, padx=5, pady=5)
 copy_forsell_button = ttk.Button(root, text="포셀 결과 복사", command=lambda: copy_to_clipboard(result_text_forsell.get(1.0, tk.END)))
 copy_forsell_button.grid(row=2, column=3, padx=5, pady=5)
 
-#엑셀 버튼
-naver_button = ttk.Button(root, text="네이버 엑셀", command=lambda: None)
+# 네이버 엑셀 버튼
+naver_button = ttk.Button(root, text="네이버 엑셀", command=lambda: save_excel_file(f"네이버_excel_{entry.get()}.xlsx",  result_text_naver))
 naver_button.grid(row=3, column=0, padx=5, pady=5)
-eleven_street_button = ttk.Button(root, text="11번가 엑셀", command=lambda: None)
+
+# 11번가 엑셀 버튼
+eleven_street_button = ttk.Button(root, text="11번가 엑셀", command=lambda: save_excel_file(f"11번가_excel_{entry.get()}.xlsx",  result_text_11st))
 eleven_street_button.grid(row=3, column=1, padx=5, pady=5)
-gmarket_button = ttk.Button(root, text="지마켓 엑셀", command=lambda: None)
+
+# 지마켓 엑셀 버튼
+gmarket_button = ttk.Button(root, text="지마켓 엑셀", command=lambda: save_excel_file(f"지마켓_excel_{entry.get()}.xlsx",  result_text_gmarket))
 gmarket_button.grid(row=3, column=2, padx=5, pady=5)
-forsell_button = ttk.Button(root, text="포셀 엑셀", command=lambda: None)
-forsell_button.grid(row=3, column=3, padx=5, pady=5)
 
 
 # 엔터 키를 누르면 검색 버튼 클릭
