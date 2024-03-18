@@ -67,6 +67,7 @@ def search_gmarket(keyword):
 # 검색 함수
 def search(event=None):
     global keyword
+    global result_forsell
     keyword = entry.get()
     chrome_options = Options()
     chrome_options.add_argument("--incognito")
@@ -110,7 +111,7 @@ def search(event=None):
         copy_forsell_keyword.click()
         clipboard_content_forsell = pyperclip.paste()
         result_forsell = clipboard_content_forsell.split(',')
-
+        
         # 네이버 쇼핑 검색
         result_naver_raw = search_naver(keyword, browser)
         
@@ -215,6 +216,18 @@ def save_excel_file(filename, textbox):
     # 파일 저장
     wb.save(filename)
 
+#포셀 전용 엑셀 파일 저장 함수 
+def save_forsell_excel_file(filename, excel_results):
+    # 워크북 생성
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    
+    # 데이터 입력
+    for row, result in enumerate(excel_results, start=1):
+        sheet.cell(row=row, column=1).value = result
+    
+    # 엑셀 파일로 저장
+    wb.save(filename)
 
 # Tkinter 윈도우 생성
 root = tk.Tk()
@@ -255,27 +268,30 @@ result_text_gmarket.config(font=("Courier", 15))
 result_text_forsell.config(font=("Courier", 15))
 
 # 네이버 검색 결과 복사 버튼
-copy_naver_button = ttk.Button(root, text="네이버 결과 복사", command=lambda: copy_to_clipboard(result_text_naver.get(1.0, tk.END)))
+copy_naver_button = ttk.Button(root, text="naver 결과 복사", command=lambda: copy_to_clipboard(result_text_naver.get(1.0, tk.END)))
 copy_naver_button.grid(row=2, column=0, padx=5, pady=5)
-copy_11st_button = ttk.Button(root, text="11번가 결과 복사", command=lambda: copy_to_clipboard(result_text_11st.get(1.0, tk.END)))
+copy_11st_button = ttk.Button(root, text="11st 결과 복사", command=lambda: copy_to_clipboard(result_text_11st.get(1.0, tk.END)))
 copy_11st_button.grid(row=2, column=1, padx=5, pady=5)
-copy_gmarket_button = ttk.Button(root, text="지마켓 결과 복사", command=lambda: copy_to_clipboard(result_text_gmarket.get(1.0, tk.END)))
+copy_gmarket_button = ttk.Button(root, text="gmarket 결과 복사", command=lambda: copy_to_clipboard(result_text_gmarket.get(1.0, tk.END)))
 copy_gmarket_button.grid(row=2, column=2, padx=5, pady=5)
-copy_forsell_button = ttk.Button(root, text="포셀 결과 복사", command=lambda: copy_to_clipboard(result_text_forsell.get(1.0, tk.END)))
+copy_forsell_button = ttk.Button(root, text="forsell 결과 복사", command=lambda: copy_to_clipboard(result_text_forsell.get(1.0, tk.END)))
 copy_forsell_button.grid(row=2, column=3, padx=5, pady=5)
 
 # 네이버 엑셀 버튼
-naver_button = ttk.Button(root, text="네이버 엑셀", command=lambda: save_excel_file(f"네이버_excel_{entry.get()}.xlsx",  result_text_naver))
-naver_button.grid(row=3, column=0, padx=5, pady=5)
+excel_naver_button = ttk.Button(root, text="naver 엑셀", command=lambda: save_excel_file(f"naver_excel_{entry.get()}.xlsx",  result_text_naver))
+excel_naver_button.grid(row=3, column=0, padx=5, pady=5)
 
 # 11번가 엑셀 버튼
-eleven_street_button = ttk.Button(root, text="11번가 엑셀", command=lambda: save_excel_file(f"11번가_excel_{entry.get()}.xlsx",  result_text_11st))
-eleven_street_button.grid(row=3, column=1, padx=5, pady=5)
+excel_11st_button = ttk.Button(root, text="11st 엑셀", command=lambda: save_excel_file(f"11st_excel_{entry.get()}.xlsx",  result_text_11st))
+excel_11st_button.grid(row=3, column=1, padx=5, pady=5)
 
 # 지마켓 엑셀 버튼
-gmarket_button = ttk.Button(root, text="지마켓 엑셀", command=lambda: save_excel_file(f"지마켓_excel_{entry.get()}.xlsx",  result_text_gmarket))
-gmarket_button.grid(row=3, column=2, padx=5, pady=5)
+excel_gmarket_button = ttk.Button(root, text="gmarket 엑셀", command=lambda: save_excel_file(f"gmarket_excel_{entry.get()}.xlsx",  result_text_gmarket))
+excel_gmarket_button.grid(row=3, column=2, padx=5, pady=5)
 
+#포셀 엑셀 버튼 
+excel_forsell_button = ttk.Button(root, text="forsell 엑셀", command=lambda: save_forsell_excel_file(f"forsell_excel_{entry.get()}.xlsx", result_forsell ))
+excel_forsell_button.grid(row=3, column=3, padx=5, pady=5)
 
 # 엔터 키를 누르면 검색 버튼 클릭
 root.bind('<Return>', search)
